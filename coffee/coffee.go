@@ -13,7 +13,7 @@ type Coffee struct {
 
 type CoffeeDB []Coffee
 
-func (cdb CoffeeDB) init() {
+func (cdb CoffeeDB) Init() {
 	cdb = make([]Coffee, 0)
 }
 
