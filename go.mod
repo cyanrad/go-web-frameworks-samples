@@ -1,3 +1,3 @@
-module main
+module webframeworks
 
 go 1.19

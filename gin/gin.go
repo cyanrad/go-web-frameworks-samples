@@ -1,5 +1,0 @@
-package ginapi
-
-func maingin() {
-
-}

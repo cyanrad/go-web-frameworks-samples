@@ -1,7 +1,8 @@
-package main
+package coffee
 
 // all measurements are done in gram, hence int
 type Coffee struct {
+	ID             int
 	InstantCoffee  int
 	CoffeeMate     int
 	PowderedMilk   int
@@ -10,15 +11,55 @@ type Coffee struct {
 	Rating         int
 }
 
-// global variable to contain coffee data
-// cuz i don't feel like handling databases
-//
-// if you think about, if you just keep the program running forever
-// you won't ever need a database again :))))))
-var coffees []Coffee = make([]Coffee, 0)
+type CoffeeDB []Coffee
 
-func CoffeeAvg() (avg Coffee) {
-	for _, c := range coffees {
+func (cdb CoffeeDB) init() {
+	cdb = make([]Coffee, 0)
+}
+
+func (cdb CoffeeDB) Create(c Coffee) {
+	newID := cdb[len(cdb)-1].ID + 1
+	c.ID = newID // overwriting ID if for some reason written
+	cdb = append(cdb, c)
+}
+
+func (cdb CoffeeDB) Get(ID int) (Coffee, bool) {
+	if i, ok := cdb.findIndexFromID(ID); ok {
+		return cdb[i], true
+	}
+	return Coffee{}, false
+}
+
+func (cdb CoffeeDB) Set(ID int, c Coffee) bool {
+	if i, ok := cdb.findIndexFromID(ID); ok {
+		cdb[i] = c
+		return true
+	}
+	return false
+}
+
+func (cdb CoffeeDB) Delete(ID int) bool {
+	if i, ok := cdb.findIndexFromID(ID); ok {
+		cdb = append(cdb[:i], cdb[i+1:]...)
+		return true
+	}
+
+	return false
+}
+
+func (cdb CoffeeDB) findIndexFromID(ID int) (int, bool) {
+	for i, c := range cdb {
+		if c.ID == ID {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func (cdb CoffeeDB) Avg() Coffee {
+	var avg Coffee
+
+	for _, c := range cdb {
 		avg.InstantCoffee += c.InstantCoffee
 		avg.CoffeeMate += c.CoffeeMate
 		avg.PowderedMilk += c.PowderedMilk
@@ -27,7 +68,7 @@ func CoffeeAvg() (avg Coffee) {
 		avg.Rating += c.Rating
 	}
 
-	clen := len(coffees)
+	clen := len(cdb)
 	avg.InstantCoffee /= clen
 	avg.CoffeeMate /= clen
 	avg.PowderedMilk /= clen
