@@ -2,13 +2,13 @@ package coffee
 
 // all measurements are done in gram, hence int
 type Coffee struct {
-	ID             int
-	InstantCoffee  int
-	CoffeeMate     int
-	PowderedMilk   int
-	EvaporatedMilk int
-	Water          int
-	Rating         int
+	ID             int `json:"id"`
+	InstantCoffee  int `json:"instant_coffee"`
+	CoffeeMate     int `json:"coffee_mate"`
+	PowderedMilk   int `json:"powdered_milk"`
+	EvaporatedMilk int `json:"evaporated_milk"`
+	Water          int `json:"water"`
+	Rating         int `json:"rating"`
 }
 
 type CoffeeDB []Coffee

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,10 +11,10 @@ import (
 )
 
 type stdlibCoffee struct {
-	db coffee.CoffeeDB
+	db *coffee.CoffeeDB
 }
 
-func Main(cdb coffee.CoffeeDB) {
+func Main(cdb *coffee.CoffeeDB) {
 	cdb.Init()
 	slc := stdlibCoffee{db: cdb}
 
@@ -43,45 +42,80 @@ func (slc stdlibCoffee) handleCoffee(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (slc stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request) {
+func (slc *stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
 
 	switch path {
 	case "":
-		writeJson(w, slc.db)
+		fmt.Println(slc.db)
+		err := writeJson(w, slc.db)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
 	case "avg":
-		writeJson(w, slc.db.Avg())
+		err := writeJson(w, slc.db.Avg())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
 	default:
 		ID, err := strconv.Atoi(path)
 		if err != nil {
-			log.Fatal(err)
+			w.WriteHeader(http.StatusNotFound)
 		}
+
 		coffee, ok := slc.db.Get(ID)
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
 		}
-		writeJson(w, coffee)
+
+		err = writeJson(w, coffee)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 }
 
-func (slc stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request) {}
+func (slc *stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
 
-func (slc stdlibCoffee) handleCoffeePut(w http.ResponseWriter, r *http.Request) {}
+	switch path {
+	case "":
+		defer r.Body.Close()
+		newCoffee := coffee.Coffee{}
+		err := json.NewDecoder(r.Body).Decode(&newCoffee)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 
-func (slc stdlibCoffee) handleCoffeeDelete(w http.ResponseWriter, r *http.Request) {}
+		slc.db.Create(newCoffee)
 
-func writeJson(w http.ResponseWriter, data any) {
+	default:
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func (slc *stdlibCoffee) handleCoffeePut(w http.ResponseWriter, r *http.Request) {
+	// path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+}
+
+func (slc *stdlibCoffee) handleCoffeeDelete(w http.ResponseWriter, r *http.Request) {
+	// path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+}
+
+func writeJson(w http.ResponseWriter, data any) error {
 	w.Header().Set("Content-Type", "application/json")
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	_, err = w.Write(bytes)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }

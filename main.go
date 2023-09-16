@@ -9,5 +9,5 @@ func main() {
 	var cdb coffee.CoffeeDB
 	cdb.Init()
 
-	stdlib.Main(cdb)
+	stdlib.Main(&cdb)
 }
