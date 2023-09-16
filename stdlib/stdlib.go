@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,19 +36,18 @@ func (slc stdlibCoffee) handleCoffee(w http.ResponseWriter, r *http.Request) {
 		slc.handleCoffeeGet(w, r)
 	case http.MethodPost:
 		slc.handleCoffeePost(w, r)
-	case http.MethodPut:
-		slc.handleCoffeePut(w, r)
+	case http.MethodPatch:
+		slc.handleCoffeePatch(w, r)
 	case http.MethodDelete:
 		slc.handleCoffeeDelete(w, r)
 	}
 }
 
-func (slc *stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request) {
+func (slc stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
 
 	switch path {
 	case "":
-		fmt.Println(slc.db)
 		err := writeJson(w, slc.db)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -63,11 +63,13 @@ func (slc *stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request)
 		ID, err := strconv.Atoi(path)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 
 		coffee, ok := slc.db.Get(ID)
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 
 		err = writeJson(w, coffee)
@@ -77,7 +79,7 @@ func (slc *stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (slc *stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request) {
+func (slc stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
 
 	switch path {
@@ -87,21 +89,96 @@ func (slc *stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request
 		err := json.NewDecoder(r.Body).Decode(&newCoffee)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
 		slc.db.Create(newCoffee)
+		err = writeJson(w, newCoffee)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
-func (slc *stdlibCoffee) handleCoffeePut(w http.ResponseWriter, r *http.Request) {
-	// path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+func (slc stdlibCoffee) handleCoffeeDelete(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+
+	switch path {
+	default:
+		ID, err := strconv.Atoi(path)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		ok := slc.db.Delete(ID)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 }
 
-func (slc *stdlibCoffee) handleCoffeeDelete(w http.ResponseWriter, r *http.Request) {
-	// path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+func (slc stdlibCoffee) handleCoffeePatch(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
+
+	switch path {
+	default:
+		ID, err := strconv.Atoi(path)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		coffee, ok := slc.db.Get(ID)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		bytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		r.Body.Close()
+
+		// this is bad cuz if we ever add anyting that's not an int it will error
+		newCoffeeValues := map[string]int{}
+		err = json.Unmarshal(bytes, &newCoffeeValues)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if val, ok := newCoffeeValues["instant_coffee"]; ok {
+			coffee.InstantCoffee = val
+		}
+		if val, ok := newCoffeeValues["coffee_mate"]; ok {
+			coffee.CoffeeMate = val
+		}
+		if val, ok := newCoffeeValues["powdered_milk"]; ok {
+			coffee.PowderedMilk = val
+		}
+		if val, ok := newCoffeeValues["evaporated_milk"]; ok {
+			coffee.EvaporatedMilk = val
+		}
+		if val, ok := newCoffeeValues["water"]; ok {
+			coffee.Water = val
+		}
+		if val, ok := newCoffeeValues["rating"]; ok {
+			coffee.Rating = val
+		}
+
+		slc.db.Set(ID, coffee)
+		writeJson(w, coffee)
+	}
 }
 
 func writeJson(w http.ResponseWriter, data any) error {
