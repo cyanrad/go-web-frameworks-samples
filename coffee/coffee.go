@@ -13,14 +13,14 @@ type Coffee struct {
 
 type CoffeeDB []Coffee
 
-func (cdb CoffeeDB) Init() {
-	cdb = make([]Coffee, 0)
+func (cdb *CoffeeDB) Init() {
+	*cdb = generateCoffeeData(10)
 }
 
-func (cdb CoffeeDB) Create(c Coffee) {
-	newID := cdb[len(cdb)-1].ID + 1
+func (cdb *CoffeeDB) Create(c Coffee) {
+	newID := (*cdb)[len(*cdb)-1].ID + 1
 	c.ID = newID // overwriting ID if for some reason written
-	cdb = append(cdb, c)
+	*cdb = append(*cdb, c)
 }
 
 func (cdb CoffeeDB) Get(ID int) (Coffee, bool) {
@@ -30,17 +30,17 @@ func (cdb CoffeeDB) Get(ID int) (Coffee, bool) {
 	return Coffee{}, false
 }
 
-func (cdb CoffeeDB) Set(ID int, c Coffee) bool {
+func (cdb *CoffeeDB) Set(ID int, c Coffee) bool {
 	if i, ok := cdb.findIndexFromID(ID); ok {
-		cdb[i] = c
+		(*cdb)[i] = c
 		return true
 	}
 	return false
 }
 
-func (cdb CoffeeDB) Delete(ID int) bool {
+func (cdb *CoffeeDB) Delete(ID int) bool {
 	if i, ok := cdb.findIndexFromID(ID); ok {
-		cdb = append(cdb[:i], cdb[i+1:]...)
+		*cdb = append((*cdb)[:i], (*cdb)[i+1:]...)
 		return true
 	}
 

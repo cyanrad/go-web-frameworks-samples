@@ -1,4 +1,4 @@
-package main
+package stdlib
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"webframeworks/coffee"
 )
 
@@ -14,18 +15,17 @@ type stdlibCoffee struct {
 	db coffee.CoffeeDB
 }
 
-func StdlibMain(cdb coffee.CoffeeDB) {
+func Main(cdb coffee.CoffeeDB) {
 	cdb.Init()
 	slc := stdlibCoffee{db: cdb}
 
-	http.HandleFunc("/coffee", slc.handleCoffee)
+	http.HandleFunc("/coffee/", slc.handleCoffee)
 
-	// starting the server
 	err := http.ListenAndServe(":8080", nil)
 
-	if errors.Is(err, http.ErrServerClosed) { // graceful shutdown
+	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
-	} else if err != nil { //-- fuck you shutdown
+	} else if err != nil {
 		fmt.Printf("error starting server: %s\n", err)
 	}
 }
@@ -44,38 +44,44 @@ func (slc stdlibCoffee) handleCoffee(w http.ResponseWriter, r *http.Request) {
 }
 
 func (slc stdlibCoffee) handleCoffeeGet(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	switch path {
-	case "/":
-		sendJson(w, slc.db)
+	path := strings.TrimPrefix(r.URL.Path, "/coffee/")
 
-	case "/avg":
-		avgCoffee := slc.db.Avg()
-		sendJson(w, avgCoffee)
+	switch path {
+	case "":
+		writeJson(w, slc.db)
+
+	case "avg":
+		writeJson(w, slc.db.Avg())
 
 	default:
-		ID, err := strconv.Atoi(path[1:])
+		ID, err := strconv.Atoi(path)
 		if err != nil {
 			log.Fatal(err)
 		}
-		c, ok := slc.db.Get(ID)
+		coffee, ok := slc.db.Get(ID)
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
 		}
-		sendJson(w, c)
+		writeJson(w, coffee)
 	}
 }
-func (slc stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request)   {}
-func (slc stdlibCoffee) handleCoffeePut(w http.ResponseWriter, r *http.Request)    {}
+
+func (slc stdlibCoffee) handleCoffeePost(w http.ResponseWriter, r *http.Request) {}
+
+func (slc stdlibCoffee) handleCoffeePut(w http.ResponseWriter, r *http.Request) {}
+
 func (slc stdlibCoffee) handleCoffeeDelete(w http.ResponseWriter, r *http.Request) {}
 
-func sendJson(w http.ResponseWriter, data any) {
-	if bytes, err := json.Marshal(data); err != nil {
-		_, err := w.Write(bytes)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
+func writeJson(w http.ResponseWriter, data any) {
+	w.Header().Set("Content-Type", "application/json")
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = w.Write(bytes)
+	if err != nil {
 		log.Fatal(err)
 	}
 }
