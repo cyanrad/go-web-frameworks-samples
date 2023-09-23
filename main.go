@@ -2,12 +2,13 @@ package main
 
 import (
 	"webframeworks/coffee"
-	"webframeworks/stdlib"
+	"webframeworks/gin"
 )
 
 func main() {
 	var cdb coffee.CoffeeDB
 	cdb.Init()
 
-	stdlib.Main(&cdb)
+	// stdlib.Main(&cdb)
+	gin.Main(&cdb)
 }
