@@ -136,12 +136,6 @@ func (slc stdlibCoffee) handleCoffeePatch(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		coffee, ok := slc.db.Get(ID)
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		bytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -149,35 +143,20 @@ func (slc stdlibCoffee) handleCoffeePatch(w http.ResponseWriter, r *http.Request
 		}
 		r.Body.Close()
 
-		// this is bad cuz if we ever add anyting that's not an int it will error
-		newCoffeeValues := map[string]int{}
-		err = json.Unmarshal(bytes, &newCoffeeValues)
+		patch := coffee.CoffeePatch{}
+		err = json.Unmarshal(bytes, &patch)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		if val, ok := newCoffeeValues["instant_coffee"]; ok {
-			coffee.InstantCoffee = val
-		}
-		if val, ok := newCoffeeValues["coffee_mate"]; ok {
-			coffee.CoffeeMate = val
-		}
-		if val, ok := newCoffeeValues["powdered_milk"]; ok {
-			coffee.PowderedMilk = val
-		}
-		if val, ok := newCoffeeValues["evaporated_milk"]; ok {
-			coffee.EvaporatedMilk = val
-		}
-		if val, ok := newCoffeeValues["water"]; ok {
-			coffee.Water = val
-		}
-		if val, ok := newCoffeeValues["rating"]; ok {
-			coffee.Rating = val
+		patchedCoffee, ok := slc.db.Patch(ID, patch)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 
-		slc.db.Set(ID, coffee)
-		writeJson(w, coffee)
+		writeJson(w, patchedCoffee)
 	}
 }
 

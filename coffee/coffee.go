@@ -11,6 +11,15 @@ type Coffee struct {
 	Rating         int `json:"rating"`
 }
 
+type CoffeePatch struct {
+	InstantCoffee  *int `json:"instant_coffee"`
+	CoffeeMate     *int `json:"coffee_mate"`
+	PowderedMilk   *int `json:"powdered_milk"`
+	EvaporatedMilk *int `json:"evaporated_milk"`
+	Water          *int `json:"water"`
+	Rating         *int `json:"rating"`
+}
+
 type CoffeeDB []Coffee
 
 func (cdb *CoffeeDB) Init() {
@@ -30,14 +39,6 @@ func (cdb CoffeeDB) Get(ID int) (Coffee, bool) {
 	return Coffee{}, false
 }
 
-func (cdb *CoffeeDB) Set(ID int, c Coffee) bool {
-	if i, ok := cdb.findIndexFromID(ID); ok {
-		(*cdb)[i] = c
-		return true
-	}
-	return false
-}
-
 func (cdb *CoffeeDB) Delete(ID int) bool {
 	if i, ok := cdb.findIndexFromID(ID); ok {
 		*cdb = append((*cdb)[:i], (*cdb)[i+1:]...)
@@ -45,6 +46,37 @@ func (cdb *CoffeeDB) Delete(ID int) bool {
 	}
 
 	return false
+}
+
+func (cdb *CoffeeDB) Patch(ID int, patch CoffeePatch) (Coffee, bool) {
+	i, ok := cdb.findIndexFromID(ID)
+	if !ok {
+		return Coffee{}, false
+	}
+
+	coffee := (*cdb)[i]
+
+	if patch.InstantCoffee != nil {
+		coffee.InstantCoffee = *patch.InstantCoffee
+	}
+	if patch.CoffeeMate != nil {
+		coffee.CoffeeMate = *patch.CoffeeMate
+	}
+	if patch.PowderedMilk != nil {
+		coffee.PowderedMilk = *patch.PowderedMilk
+	}
+	if patch.EvaporatedMilk != nil {
+		coffee.EvaporatedMilk = *patch.EvaporatedMilk
+	}
+	if patch.Water != nil {
+		coffee.Water = *patch.Water
+	}
+	if patch.Rating != nil {
+		coffee.Rating = *patch.Rating
+	}
+
+	(*cdb)[i] = coffee
+	return coffee, true
 }
 
 func (cdb CoffeeDB) findIndexFromID(ID int) (int, bool) {
